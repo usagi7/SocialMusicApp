@@ -4,9 +4,19 @@ import android.content.Context;
 import android.database.Cursor;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.util.Log;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -15,7 +25,9 @@ import java.util.HashMap;
  */
 public class MusicManager {
 
-    ArrayList<Song> songsList = new ArrayList<Song>();
+    public static final int BUFFER_SIZE = 4096;
+
+    private ArrayList<Song> songsList = new ArrayList<Song>();
 
     // Constructor
     public MusicManager() {
@@ -24,7 +36,6 @@ public class MusicManager {
 
     public MusicManager(Context context){
         buildSongsList(context);
-
     }
 
     private void buildSongsList(Context MainActivity){
@@ -85,7 +96,6 @@ public class MusicManager {
             songConverted.put("songPath", s.get_path());
             songs.add(songConverted);
         }
-
         return songs;
     }
 
@@ -129,5 +139,81 @@ public class MusicManager {
         }
         return albums;
     }
-}
 
+    public void getFile(String urlEndpoint)
+    {
+       DownloadFile downloadFile = new DownloadFile();
+       downloadFile.execute(urlEndpoint);
+    }
+
+    private class DownloadFile extends AsyncTask<String, Void, Void>
+    {
+        @Override
+        protected Void doInBackground(String... params) {
+
+            try {
+                String urlEndpoint = params[0];
+                URL url = new URL(urlEndpoint);
+                HttpURLConnection httpConn = (HttpURLConnection) url.openConnection();
+                int responseCode = httpConn.getResponseCode();
+
+                // always check HTTP response code first
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+
+                    String fileName = "";
+                    String disposition = httpConn.getHeaderField("Content-Disposition");
+                    String contentType = httpConn.getContentType();
+                    int contentLength = httpConn.getContentLength();
+
+                    if (disposition != null) {
+                        // extracts file name from header field
+                        int index = disposition.indexOf("filename=");
+                        if (index > 0) {
+                            fileName = disposition.substring(index + 10,
+                                    disposition.length() - 1);
+                        }
+                    } else {
+                        // extracts file name from URL
+                        fileName = urlEndpoint.substring(urlEndpoint.lastIndexOf("/") + 1,
+                                urlEndpoint.length());
+                    }
+
+                    System.out.println("Content-Type = " + contentType);
+                    System.out.println("Content-Disposition = " + disposition);
+                    System.out.println("Content-Length = " + contentLength);
+                    System.out.println("fileName = " + fileName);
+
+                    // opens input stream from the HTTP connection
+                    InputStream inputStream = httpConn.getInputStream();
+                    File path = Environment.getExternalStoragePublicDirectory(
+                            Environment.DIRECTORY_MUSIC);
+                    File newSongFile =  new File(path, "/" + "uniqueID");
+
+                    // opens an output stream to save into file
+                    FileOutputStream outputStream = new FileOutputStream(newSongFile);
+
+                    int bytesRead = -1;
+                    byte[] buffer = new byte[BUFFER_SIZE];
+                    while ((bytesRead = inputStream.read(buffer)) != -1) {
+                        outputStream.write(buffer, 0, bytesRead);
+                    }
+
+                    outputStream.close();
+                    inputStream.close();
+
+                    System.out.println("File downloaded");
+                } else {
+                    System.out.println("No file to download. Server replied HTTP code: " + responseCode);
+                }
+                httpConn.disconnect();
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+}

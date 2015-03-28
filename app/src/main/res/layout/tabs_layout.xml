@@ -3,6 +3,11 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical" >
+    <Button
+        android:text="PRESS ME BITCH"
+        android:id="@+id/bitchButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
     <SearchView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

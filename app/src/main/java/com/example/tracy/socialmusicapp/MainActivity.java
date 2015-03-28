@@ -4,20 +4,35 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentTabHost;
 import android.os.Bundle;
 import android.view.Menu;
+import android.view.View;
+import android.widget.Button;
 
 
 public class MainActivity extends FragmentActivity {
 
     private FragmentTabHost tabHostManager;
     private static MusicManager mManager;
+    private Button  bitchButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.tabs_layout);
 
         mManager = new MusicManager(this);
+
         tabHostManager = (FragmentTabHost) findViewById(android.R.id.tabhost);
         tabHostManager.setup(this, getSupportFragmentManager(),R.id.realtabcontent);
+
+        bitchButton = (Button)findViewById(R.id.bitchButton);
+
+       bitchButton.setOnClickListener(new View.OnClickListener() {
+           public void onClick(View v) {
+               mManager.getFile("http://ryanz.us:81/");
+           }
+       });
+
+
 
         Bundle b = new Bundle();
         b.putString("key", "Songs");
